@@ -42,8 +42,8 @@ func (e *Expression) calcExpr(expr expr) (*Result, error) {
 	switch ex := expr.(type) {
 	case *literalExpr:
 		return e.calcLiteralExpr(ex)
-	case *idExpr:
-		return e.calcIDExpr(ex)
+	case *identExpr:
+		return e.calcIdentExpr(ex)
 	case *unaryExpr:
 		return e.calcUnaryExpr(ex)
 	case *binaryExpr:
@@ -54,7 +54,7 @@ func (e *Expression) calcExpr(expr expr) (*Result, error) {
 	return nil, errors.New("token error")
 }
 
-func (e *Expression) calcIDExpr(expr *idExpr) (*Result, error) {
+func (e *Expression) calcIdentExpr(expr *identExpr) (*Result, error) {
 	if val, find := e.Params[expr.name]; find {
 		switch v := val.(type) {
 		case int:
@@ -125,7 +125,7 @@ func (e *Expression) calcIDExpr(expr *idExpr) (*Result, error) {
 			return result, nil
 		case bool:
 			result := &Result{
-				kind: ID,
+				kind: Ident,
 				data: v,
 			}
 			return result, nil
@@ -141,7 +141,7 @@ func (e *Expression) calcParenExpr(expr *parenExpr) (*Result, error) {
 }
 
 func (e *Expression) calcBinaryExpr(expr *binaryExpr) (*Result, error) {
-	switch expr.Op {
+	switch expr.op {
 	case OpAdd:
 		l, err := e.calcExpr(expr.e1)
 		if err != nil {
@@ -330,7 +330,7 @@ func (e *Expression) calcBinaryExpr(expr *binaryExpr) (*Result, error) {
 func (e *Expression) calcLiteralExpr(expr *literalExpr) (*Result, error) {
 	switch expr.kind {
 	case Integer:
-		if data, err := strconv.Atoi(expr.literal); err != nil {
+		if data, err := strconv.Atoi(expr.lit); err != nil {
 			return nil, err
 		} else {
 			result := &Result{
@@ -340,7 +340,7 @@ func (e *Expression) calcLiteralExpr(expr *literalExpr) (*Result, error) {
 			return result, nil
 		}
 	case Float:
-		if data, err := strconv.ParseFloat(expr.literal, 32); err != nil {
+		if data, err := strconv.ParseFloat(expr.lit, 32); err != nil {
 			return nil, err
 		} else {
 			result := &Result{
@@ -350,17 +350,17 @@ func (e *Expression) calcLiteralExpr(expr *literalExpr) (*Result, error) {
 			return result, nil
 		}
 	case Char:
-		if len(expr.literal) == 3 {
+		if len(expr.lit) == 3 {
 			result := &Result{
-				kind: expr.kind,
-				data: rune(expr.literal[1]),
+				kind: Integer, // reset to integer
+				data: rune(expr.lit[1]),
 			}
 			return result, nil
 		} else {
 			return nil, errors.New("parse char error")
 		}
 	case String:
-		if data, err := strconv.Unquote(expr.literal); err != nil {
+		if data, err := strconv.Unquote(expr.lit); err != nil {
 			return nil, err
 		} else {
 			result := &Result{
@@ -428,7 +428,7 @@ func (e *Expression) calcUnaryExpr(expr *unaryExpr) (*Result, error) {
 			return nil, err
 		} else {
 			switch result.kind {
-			case ID:
+			case Ident:
 				if data, ok := result.data.(bool); ok {
 					result := &Result{
 						kind: result.kind,

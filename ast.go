@@ -11,13 +11,13 @@ type expr interface {
 
 type (
 	literalExpr struct {
-		kind    token
-		literal string
+		kind token
+		lit  string
 	}
 
 	accessExpr struct {
 		e      expr
-		access idExpr
+		access identExpr
 	}
 
 	indexExpr struct {
@@ -25,13 +25,13 @@ type (
 		index expr
 	}
 
-	idExpr struct {
+	identExpr struct {
 		name string
 	}
 
 	binaryExpr struct {
 		e1 expr
-		Op token
+		op token
 		e2 expr
 	}
 
@@ -60,7 +60,7 @@ func (e *indexExpr) String() string {
 	return string(b)
 }
 
-func (e *idExpr) String() string {
+func (e *identExpr) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }

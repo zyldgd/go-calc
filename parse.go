@@ -22,7 +22,7 @@ func parserAST(expr string) expr {
 }
 
 func (p *parser) parseExpr() expr {
-	e := p.parseBinaryExpr(99)
+	e := p.parseBinaryExpr(99) // TODO 99
 	return e
 }
 
@@ -35,12 +35,12 @@ func (p *parser) parseOperand() expr {
 	switch p.tok {
 	case Integer, Float, Char, String:
 		e = &literalExpr{
-			kind:    p.tok,
-			literal: p.lit,
+			kind: p.tok,
+			lit:  p.lit,
 		}
 		p.next()
-	case ID:
-		e = &idExpr{
+	case Ident:
+		e = &identExpr{
 			name: p.lit,
 		}
 		p.next()
@@ -63,10 +63,10 @@ func (p *parser) parseOperand() expr {
 	case OpAccess:
 		p.next()
 		switch p.tok {
-		case ID:
+		case Ident:
 			e = &accessExpr{
 				e: e,
-				access: idExpr{
+				access: identExpr{
 					name: p.lit,
 				},
 			}
@@ -89,18 +89,18 @@ func (p *parser) parseUnaryExpr() expr {
 	return p.parseOperand()
 }
 
-func (p *parser) parseBinaryExpr(pre1 precedence) expr {
+func (p *parser) parseBinaryExpr(p0 precedence) expr {
 	le := p.parseUnaryExpr()
 	// 1 + 2 + 3
 	for {
 		op := p.tok
 		pre := op.precedence()
-		if pre == 0 || !pre.precedenceWith(pre1) {
+		if pre == 0 || !pre.precedenceWith(p0) {
 			break
 		}
 		p.next()
 		re := p.parseBinaryExpr(pre)
-		le = &binaryExpr{e1: le, Op: op, e2: re}
+		le = &binaryExpr{e1: le, op: op, e2: re}
 	}
 
 	return le

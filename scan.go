@@ -1,11 +1,5 @@
 package gocalc
 
-import (
-	"fmt"
-	"strconv"
-	"strings"
-)
-
 type scanner struct {
 	source []rune
 	index  int
@@ -25,16 +19,6 @@ func newScanner(e string) *scanner {
 	l.char = l.source[0]
 
 	return l
-}
-
-func (s *scanner) String() string {
-	str := strconv.Quote(string(s.source))
-	str = str[1 : len(str)-1]
-	space := strings.Repeat(" ", s.index)
-	return fmt.Sprintf("\n-------------------------------------------------------\n"+
-		"%5d-index : %s↓\n"+
-		"%5d-source:[%s]\n"+
-		"-------------------------------------------------------", s.index, space, len(str), str)
 }
 
 func (s *scanner) next() {
@@ -196,7 +180,6 @@ func (s *scanner) scanEscape() bool {
 
 func (s *scanner) scanString() (token, string) {
 	start := s.index // start with "
-	tok := String
 
 	for {
 		s.next()
@@ -206,6 +189,8 @@ func (s *scanner) scanString() (token, string) {
 			if !s.scanEscape() {
 				return Illegal, ""
 			}
+		} else if s.char == -1 {
+			return Illegal, ""
 		}
 	}
 
@@ -214,7 +199,7 @@ func (s *scanner) scanString() (token, string) {
 	}
 	s.next()
 
-	return tok, string(s.source[start:s.index])
+	return String, string(s.source[start:s.index])
 }
 
 func (s *scanner) scanChar() (token, string) {
@@ -245,5 +230,5 @@ func (s *scanner) scanIdentifier() (token, string) {
 		s.next()
 	}
 
-	return ID, string(s.source[start:s.index])
+	return Ident, string(s.source[start:s.index])
 }

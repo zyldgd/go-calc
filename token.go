@@ -12,7 +12,7 @@ type precedence int
 const (
 	Illegal         token = iota
 	EOF                   // eof
-	ID                    // Identifier
+	Ident                 // identifier
 	Integer               // 12345
 	Float                 // 123.45
 	Char                  // 'a'
@@ -87,8 +87,8 @@ func (tok token) String() string {
 	switch tok {
 	case EOF:
 		return "EOF"
-	case ID:
-		return "Identifier"
+	case Ident:
+		return "Ident"
 	case Illegal:
 		return "Illegal"
 	case Integer:
