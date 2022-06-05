@@ -1,28 +1,29 @@
 package gocalc
 
 import (
-	"encoding/json"
+	"strconv"
 )
 
 type parser struct {
 	scanner *scanner
-	tok     token
+	tok     Token
 	lit     string
-	json.Number
 }
 
-func parserAST(expr string) expr {
+func ParserAST(expr string) Expr {
 	p := &parser{
-		scanner: newScanner(expr),
+		scanner: NewScanner(expr),
 	}
 	p.next()
-	e := p.parseExpr()
+	e := p.ParseExpr()
 
 	return e
 }
 
-func (p *parser) parseExpr() expr {
-	e := p.parseBinaryExpr(99) // TODO 99
+// ----------------------------------
+
+func (p *parser) ParseExpr() Expr {
+	e := p.parseBinaryExpr(99)
 	return e
 }
 
@@ -30,44 +31,96 @@ func (p *parser) next() {
 	p.tok, p.lit = p.scanner.scan()
 }
 
-func (p *parser) parseOperand() expr {
-	var e expr
+func (p *parser) parseLiteral() Expr {
+	var e Expr
+
 	switch p.tok {
-	case Integer, Float, Char, String:
-		e = &literalExpr{
-			kind: p.tok,
-			lit:  p.lit,
+	case Integer:
+		if data, err := strconv.Atoi(p.lit); err == nil {
+			e = &LiteralExpr{
+				Kind:    Integer,
+				Literal: p.lit,
+				Date:    data,
+			}
 		}
 		p.next()
+	case Float:
+		if data, err := strconv.ParseFloat(p.lit, 32); err == nil {
+			e = &LiteralExpr{
+				Kind:    Float,
+				Literal: p.lit,
+				Date:    data,
+			}
+		}
+		p.next()
+	case Char:
+		data, _, _, err := strconv.UnquoteChar(p.lit, byte('"'))
+		if err == nil {
+			e = &LiteralExpr{
+				Kind:    Integer, // rune = int
+				Literal: p.lit,
+				Date:    int(data),
+			}
+		}
+		p.next()
+	case String:
+		if data, err := strconv.Unquote(p.lit); err == nil {
+			e = &LiteralExpr{
+				Kind:    String,
+				Literal: p.lit,
+				Date:    data,
+			}
+		}
+		p.next()
+	case Bool:
+		data := false
+		if p.lit == TURE {
+			data = true
+		}
+		e = &LiteralExpr{
+			Kind:    Bool,
+			Literal: p.lit,
+			Date:    data,
+		}
+		p.next()
+	}
+	return e
+}
+
+func (p *parser) parseOperand() Expr {
+	var e Expr
+	switch p.tok {
 	case Ident:
-		e = &identExpr{
-			name: p.lit,
+		e = &IdentExpr{
+			Name: p.lit,
 		}
 		p.next()
 	case OpLParen:
 		p.next()
-		e = p.parseExpr()
+		e = p.ParseExpr()
 		p.next()
-		e = &parenExpr{e: e}
+		e = &ParenExpr{E: e}
+	default:
+		e = p.parseLiteral()
 	}
 
 	switch p.tok {
 	case OpLBracket:
 		p.next()
-		index := p.parseExpr()
+		index := p.ParseExpr()
 		p.next()
-		e = &indexExpr{
-			e:     e,
-			index: index,
+		e = &IndexExpr{
+			E:     e,
+			Index: index,
 		}
 	case OpAccess:
 		p.next()
 		switch p.tok {
 		case Ident:
-			e = &accessExpr{
-				e: e,
-				access: identExpr{
-					name: p.lit,
+			e = &AccessExpr{
+				E: e,
+				Access: IdentExpr{
+					Name: p.lit,
 				},
 			}
 		}
@@ -77,30 +130,30 @@ func (p *parser) parseOperand() expr {
 	return e
 }
 
-func (p *parser) parseUnaryExpr() expr {
+func (p *parser) parseUnaryExpr() Expr {
 	switch p.tok {
 	case OpAdd, OpMinus, OpNot, OpBitwiseXor, OpBitwiseNot:
 		op := p.tok
 		p.next()
 		e := p.parseUnaryExpr()
-		return &unaryExpr{op: op, e: e}
+		return &UnaryExpr{Op: op, E: e}
 	}
 
 	return p.parseOperand()
 }
 
-func (p *parser) parseBinaryExpr(p0 precedence) expr {
+func (p *parser) parseBinaryExpr(p0 Precedence) Expr {
 	le := p.parseUnaryExpr()
 	// 1 + 2 + 3
 	for {
 		op := p.tok
-		pre := op.precedence()
-		if pre == 0 || !pre.precedenceWith(p0) {
+		p1 := op.Precedence()
+		if p1 == 0 || !p1.PrecedenceWith(p0) {
 			break
 		}
 		p.next()
-		re := p.parseBinaryExpr(pre)
-		le = &binaryExpr{e1: le, op: op, e2: re}
+		re := p.parseBinaryExpr(p1)
+		le = &BinaryExpr{LE: le, Op: op, RE: re}
 	}
 
 	return le

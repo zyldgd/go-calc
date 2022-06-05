@@ -1,12 +1,18 @@
 package gocalc
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+)
+
 type scanner struct {
 	source []rune
 	index  int
 	char   rune // next one
 }
 
-func newScanner(e string) *scanner {
+func NewScanner(e string) *scanner {
 	if len(e) == 0 {
 		return nil
 	}
@@ -21,6 +27,17 @@ func newScanner(e string) *scanner {
 	return l
 }
 
+func (s *scanner) String() string {
+	str := strconv.Quote(string(s.source))
+	str = str[1 : len(str)-1]
+	space := strings.Repeat(" ", s.index)
+	return fmt.Sprintf("\n-------------------------------------------------------\n"+
+		"%5d-index : %s↓\n"+
+		"%5d-source:[%s]\n"+
+		"-------------------------------------------------------", s.index, space, len(str), str)
+}
+
+// read next one
 func (s *scanner) next() {
 	s.index++
 	if s.index < len(s.source) {
@@ -39,12 +56,14 @@ func (s *scanner) nextChar() rune {
 }
 
 func (s *scanner) skip() {
-	for isSpace(s.char) {
+	for IsSpace(s.char) {
 		s.next()
 	}
 }
 
-func (s *scanner) scan() (token, string) {
+// -------------------------------------------------------------------------------------
+
+func (s *scanner) scan() (Token, string) {
 	s.skip()
 	if s.index >= len(s.source) {
 		return EOF, ""
@@ -53,9 +72,9 @@ func (s *scanner) scan() (token, string) {
 	tok, lit := Illegal, ""
 
 	switch {
-	case isDecimal(s.char):
+	case IsDecimal(s.char):
 		tok, lit = s.scanNumber()
-	case isLetter(s.char) || '_' == s.char:
+	case IsLetter(s.char) || '_' == s.char:
 		tok, lit = s.scanIdentifier()
 	case '"' == s.char:
 		tok, lit = s.scanString()
@@ -143,26 +162,28 @@ func (s *scanner) scan() (token, string) {
 	return tok, lit
 }
 
-func (s *scanner) scanNumber() (token, string) {
+// scanNumber fun look for Integer and Float
+func (s *scanner) scanNumber() (Token, string) {
 	start := s.index
 	tok := Integer
-	for isDecimal(s.char) {
+	for IsDecimal(s.char) {
 		s.next()
 	}
 
 	if s.char == '.' {
 		tok = Float
 		s.next()
-		if !isDecimal(s.char) {
+		if !IsDecimal(s.char) {
 			return Illegal, ""
 		}
-		for isDecimal(s.char) {
+		for IsDecimal(s.char) {
 			s.next()
 		}
 	}
 	return tok, string(s.source[start:s.index])
 }
 
+// scanEscape parses an escape-sequence where rune is the accepted escaped quote
 func (s *scanner) scanEscape() bool {
 	s.next()
 	switch s.char {
@@ -178,8 +199,10 @@ func (s *scanner) scanEscape() bool {
 	}
 }
 
-func (s *scanner) scanString() (token, string) {
+// scanString fun look for string
+func (s *scanner) scanString() (Token, string) {
 	start := s.index // start with "
+	tok := String
 
 	for {
 		s.next()
@@ -189,8 +212,6 @@ func (s *scanner) scanString() (token, string) {
 			if !s.scanEscape() {
 				return Illegal, ""
 			}
-		} else if s.char == -1 {
-			return Illegal, ""
 		}
 	}
 
@@ -199,10 +220,10 @@ func (s *scanner) scanString() (token, string) {
 	}
 	s.next()
 
-	return String, string(s.source[start:s.index])
+	return tok, string(s.source[start:s.index])
 }
 
-func (s *scanner) scanChar() (token, string) {
+func (s *scanner) scanChar() (Token, string) {
 	start := s.index // start with '
 	tok := Char
 
@@ -223,12 +244,19 @@ func (s *scanner) scanChar() (token, string) {
 	return tok, string(s.source[start:s.index])
 }
 
-func (s *scanner) scanIdentifier() (token, string) {
+func (s *scanner) scanIdentifier() (Token, string) {
 	start := s.index
-
-	for isLetter(s.char) || isDecimal(s.char) || '_' == s.char {
+	tok := Ident
+	for IsLetter(s.char) || IsDecimal(s.char) || '_' == s.char {
 		s.next()
 	}
 
-	return Ident, string(s.source[start:s.index])
+	ident := string(s.source[start:s.index])
+	if ident == TURE {
+		tok = Bool
+	} else if ident == FALSE {
+		tok = Bool
+	}
+
+	return tok, ident
 }

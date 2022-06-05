@@ -2,21 +2,24 @@ package gocalc
 
 import (
 	"fmt"
+	"unicode"
+	"unicode/utf8"
 )
 
-type token int
-type precedence int
+type Token int
 
-// ------------------------------------------------------------------
+const TURE = "true"
+const FALSE = "false"
 
 const (
-	Illegal         token = iota
+	Illegal         Token = iota
 	EOF                   // eof
-	Ident                 // identifier
+	Ident                 // Identifier
 	Integer               // 12345
 	Float                 // 123.45
 	Char                  // 'a'
 	String                // "abc"
+	Bool                  // true / false
 	OpLParen              // (
 	OpRParen              // )
 	OpLBracket            // [
@@ -45,7 +48,7 @@ const (
 	OpSeparate            // ,
 )
 
-var operatorMap = map[string]token{
+var OperatorMap = map[string]Token{
 	"(":  OpLParen,
 	")":  OpRParen,
 	"[":  OpLBracket,
@@ -74,23 +77,31 @@ var operatorMap = map[string]token{
 	",":  OpSeparate,
 }
 
-func getOperator(str string) token {
-	return operatorMap[str]
+func GetOperator(str string) Token {
+	return OperatorMap[str]
 }
 
-func (tok token) MarshalJSON() ([]byte, error) {
+func (tok Token) Precedence() Precedence {
+	return OpPrecedence(tok)
+}
+
+func (tok Token) PrecedenceWith(Op2 Token) bool {
+	return OpPrecedence(tok) < OpPrecedence(Op2)
+}
+
+func (tok Token) MarshalJSON() ([]byte, error) {
 	s := fmt.Sprintf("\"%s\"", tok.String())
 	return []byte(s), nil
 }
 
-func (tok token) String() string {
+func (tok Token) String() string {
 	switch tok {
 	case EOF:
 		return "EOF"
 	case Ident:
-		return "Ident"
+		return "IDENT"
 	case Illegal:
-		return "Illegal"
+		return "ILLEGAL"
 	case Integer:
 		return "INTEGER"
 	case Float:
@@ -99,6 +110,8 @@ func (tok token) String() string {
 		return "CHAR"
 	case String:
 		return "STRING"
+	case Bool:
+		return "BOOL"
 	case OpLParen:
 		return "("
 	case OpRParen:
@@ -155,17 +168,11 @@ func (tok token) String() string {
 	return ""
 }
 
-func (tok token) precedence() precedence {
-	return precedenceOf(tok)
-}
-
-func (tok token) precedenceWith(Op2 token) bool {
-	return precedenceOf(tok) < precedenceOf(Op2)
-}
-
 // ------------------------------------------------------------------
 
-func precedenceOf(Op token) precedence {
+type Precedence int
+
+func OpPrecedence(Op Token) Precedence {
 	switch Op {
 	//case OpLParen, OpRParen, OpAccess:
 	//	return 1
@@ -197,24 +204,41 @@ func precedenceOf(Op token) precedence {
 	return 0
 }
 
-func (p precedence) precedenceWith(p2 precedence) bool {
+func (p Precedence) PrecedenceWith(p2 Precedence) bool {
 	return p < p2
 }
 
 // ------------------------------------------------------------------
 
-func isDecimal(c rune) bool {
+func IsVariableChar(c rune) bool {
+	return unicode.IsLetter(c) || unicode.IsDigit(c) || c == '_' || c == '.'
+}
+
+func IsQuote(c rune) bool {
+	return c == '"'
+}
+
+func IsDecimal(c rune) bool {
 	return '0' <= c && c <= '9'
 }
 
-func isLetter(c rune) bool {
-	return 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z'
+func IsDigit(c rune) bool {
+	return IsDecimal(c) || c >= utf8.RuneSelf && unicode.IsDigit(c)
 }
 
-func isSpace(c rune) bool {
+func IsLetter(c rune) bool {
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || (c >= utf8.RuneSelf && unicode.IsLetter(c))
+}
+
+func IsSpace(c rune) bool {
+	return unicode.IsSpace(c)
+}
+
+func IsOperatorSymbol(c rune) bool {
 	switch c {
-	case ' ', '\t', '\n', '\r', '\f', '\v', 0x85, 0xA0:
+	case '!', '&', '|', '=', '%', '^', '~', '+', '-', '*', '/':
 		return true
+	default:
+		return false
 	}
-	return false
 }

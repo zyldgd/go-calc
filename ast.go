@@ -5,83 +5,91 @@ import (
 	"fmt"
 )
 
-type expr interface {
+type Expr interface {
 	String() string
 }
 
 type (
-	literalExpr struct {
-		kind token
-		lit  string
+	LiteralExpr struct {
+		Kind    Token
+		Literal string
+		Date    interface{}
 	}
 
-	accessExpr struct {
-		e      expr
-		access identExpr
+	AccessExpr struct {
+		E      Expr
+		Access IdentExpr
 	}
 
-	indexExpr struct {
-		e     expr
-		index expr
+	IndexExpr struct {
+		E     Expr
+		Index Expr
 	}
 
-	identExpr struct {
-		name string
+	IdentExpr struct {
+		Name string
 	}
 
-	binaryExpr struct {
-		e1 expr
-		op token
-		e2 expr
+	BinaryExpr struct {
+		LE Expr
+		Op Token
+		RE Expr
 	}
 
-	parenExpr struct {
-		e expr
+	ParenExpr struct {
+		E Expr
 	}
 
-	unaryExpr struct {
-		op token
-		e  expr
+	UnaryExpr struct {
+		Op Token
+		E  Expr
 	}
 )
 
-func (e *literalExpr) String() string {
+func (e *LiteralExpr) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }
 
-func (e *accessExpr) String() string {
+func (e *AccessExpr) String() string {
+	b, _ := json.Marshal(e)
+	return string(b)
+}
+func (e *IndexExpr) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }
 
-func (e *indexExpr) String() string {
+func (e *IdentExpr) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }
 
-func (e *identExpr) String() string {
+func (e *BinaryExpr) String() string {
+	b, _ := json.Marshal(e)
+	return string(b)
+}
+func (e *ParenExpr) String() string {
+	b, _ := json.Marshal(e)
+	return string(b)
+}
+func (e *UnaryExpr) String() string {
 	b, _ := json.Marshal(e)
 	return string(b)
 }
 
-func (e *binaryExpr) String() string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func (e *parenExpr) String() string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func (e *unaryExpr) String() string {
-	b, _ := json.Marshal(e)
-	return string(b)
-}
-
-func printAst(e expr) {
+func PrintAst(e Expr) {
 	b, _ := json.MarshalIndent(e, "", "    ")
 
 	fmt.Printf("ast:\n%+v\n", string(b))
+}
+
+// -----------------------------------------------------------------------------------
+
+func scan(expr string) {
+	exprChars := []rune(expr)
+	for i := 0; i < len(exprChars); i++ {
+		//c := exprChars[i]
+
+	}
 }
